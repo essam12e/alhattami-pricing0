@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>الحطامي لحساب التسعيرات</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d6efd">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<style>
+body{
+  font-family: Tahoma, Arial;
+  background:#f4f6f8;
+  margin:0;
+  padding:20px;
+}
+.container{
+  max-width:900px;
+  margin:auto;
+  background:white;
+  padding:25px;
+  border-radius:10px;
+  box-shadow:0 0 15px rgba(0,0,0,0.10);
+}
+h1{ text-align:center; margin:0 0 6px; }
+.subtitle{
+  text-align:center;
+  color:#666;
+  margin:0 0 18px;
+  font-size:13px;
+}
+.section{
+  margin-bottom:18px;
+  padding:15px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#fff;
+}
+.section h3{ margin:0 0 10px; text-align:center; }
+.options{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 14px;
+  justify-content:center;
+}
+.options label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:#f7f7f7;
+  border:1px solid #e3e3e3;
+  padding:10px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  user-select:none;
+  font-weight:bold;
+}
+input[type=number]{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #d7d7d7;
+  outline:none;
+  font-size:16px;
+}
+button{
+  margin-top:8px;
+  padding:12px;
+  width:100%;
+  background:#0d6efd;
+  color:white;
+  border:none;
+  font-size:16px;
+  border-radius:8px;
+  cursor:pointer;
+}
+button:hover{ background:#084298; }
+
+.result{
+  background:#f8f9fa;
+  padding:15px;
+  border-radius:8px;
+  margin-top:15px;
+  border:1px solid #e6e6e6;
+}
+.line{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:7px 0;
+  border-bottom:1px dashed #ddd;
+}
+.line:last-child{ border-bottom:none; }
+.big{ font-size:18px; font-weight:bold; }
+.good{ color:#198754; font-weight:bold; }
+.bad{ color:#dc3545; font-weight:bold; }
+
+.costRed{ color:#dc3545; font-weight:bold; }     /* تكاليف */
+.profitGreen{ color:#198754; font-weight:bold; } /* أرباح */
+
+.note{
+  margin-top:10px;
+  color:#555;
+  font-size:13px;
+  line-height:1.7;
+}
+hr{
+  border:none;
+  border-top:1px solid #ddd;
+  margin:12px 0;
+}
+.smalltag{
+  display:inline-block;
+  background:#e9f2ff;
+  color:#0d6efd;
+  border:1px solid #cfe2ff;
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:12px;
+  margin-bottom:8px;
+}
+.mini-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+.smallbtn{
+  background:#fff;
+  border:1px solid #cfe2ff;
+  color:#0d6efd;
+  border-radius:8px;
+  padding:8px 10px;
+  cursor:pointer;
+}
+.smallbtn:hover{ background:#f3f8ff; }
+.saved{
+  font-size:12px;
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1>الحطامي لحساب التسعيرات</h1>
+  <p class="subtitle">VAT السعودية ثابتة 15% — الشحن وعمولة المتجر على صاحب المتجر (العميل يدفع السعر شامل الضريبة فقط)</p>
+
+  <div class="section">
+    <h3>1) تكلفة المنتج</h3>
+    <input type="number" id="cost" placeholder="أدخل تكلفة المنتج (مثال: 50)" inputmode="decimal">
+    <div class="mini-actions">
+      <button class="smallbtn" type="button" id="clearSaved">مسح الحفظ</button>
+      <span class="saved" id="savedStatus"></span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>2) الشحن (على صاحب المتجر)</h3>
+    <div class="options" id="shipOptions">
+      <label><input type="radio" name="ship" value="0" checked> مجاني</label>
+      <label><input type="radio" name="ship" value="9"> 9</label>
+      <label><input type="radio" name="ship" value="12"> 12</label>
+      <label><input type="radio" name="ship" value="15"> 15</label>
+      <label><input type="radio" name="ship" value="18"> 18</label>
+      <label><input type="radio" name="ship" value="21"> 21</label>
+      <label><input type="radio" name="ship" value="24"> 24</label>
+      <label><input type="radio" name="ship" value="27"> 27</label>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>3) المتجر (العمولة تلقائية)</h3>
+    <div class="options" id="storeOptions">
+      <label><input type="radio" name="store" value="0" checked> سلة 0%</label>
+      <label><input type="radio" name="store" value="0.15"> نون 15%</label>
+      <label><input type="radio" name="store" value="0.15"> أمازون 15%</label>
+      <label><input type="radio" name="store" value="0.20"> ترنديول 20%</label>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>4) هامش الربح الصافي المطلوب</h3>
+    <div class="options" id="profitOptions">
+      <label><input type="radio" name="profit" value="0.2" checked> 20%</label>
+      <label><input type="radio" name="profit" value="0.3"> 30%</label>
+      <label><input type="radio" name="profit" value="0.4"> 40%</label>
+      <label><input type="radio" name="profit" value="0.5"> 50%</label>
+      <label><input type="radio" name="profit" value="0.6"> 60%</label>
+      <label><input type="radio" name="profit" value="0.7"> 70%</label>
+      <label><input type="radio" name="profit" value="0.8"> 80%</label>
+    </div>
+  </div>
+
+  <button onclick="calculate()">احسب بالتفصيل</button>
+
+  <div class="result" id="output" style="display:none;"></div>
+</div>
+
+<script>
+/* =========================
+   1) حسابات التسعير
+========================= */
+function f2(x){ return Number(x).toFixed(2); }
+
+function calculate(){
+  const VAT = 0.15;
+
+  const cost = parseFloat(document.getElementById("cost").value);
+  if(isNaN(cost) || cost <= 0){
+    alert("أدخل تكلفة صحيحة أكبر من 0");
+    return;
+  }
+
+  const ship = parseFloat(document.querySelector('input[name="ship"]:checked').value);
+  const storeRate = parseFloat(document.querySelector('input[name="store"]:checked').value);
+  const targetMargin = parseFloat(document.querySelector('input[name="profit"]:checked').value);
+
+  const denom = 1 - storeRate - targetMargin;
+
+  const out = document.getElementById("output");
+  out.style.display = "block";
+
+  if(denom <= 0){
+    out.innerHTML = `<div class="bad big">❌ غير ممكن تحقيق هذا الهامش مع هذه العمولة</div>`;
+    return;
+  }
+
+  const priceExVAT = (cost + ship) / denom;
+  const vatAmount = priceExVAT * VAT;
+  const priceIncVAT = priceExVAT + vatAmount;
+
+  const storeFee = priceExVAT * storeRate;
+  const totalCostsOwner = cost + ship + storeFee;
+  const netProfit = priceExVAT - totalCostsOwner;
+  const netPct = (netProfit / priceExVAT) * 100;
+
+  const statusClass = netProfit >= 0 ? "good" : "bad";
+  const statusText = netProfit >= 0 ? "ربح" : "خسارة";
+
+  out.innerHTML = `
+    <div class="smalltag">تفاصيل التسعير</div>
+
+    <div class="line">
+      <div>الحالة</div>
+      <div class="${statusClass} big">${statusText}: ${f2(netProfit)} ر.س</div>
+    </div>
+
+    <hr>
+
+    <div class="line">
+      <div><b>بكم المفروض أبيع المنتج؟ (للعميل)</b></div>
+      <div class="big"><b>${f2(priceIncVAT)} ر.س</b></div>
+    </div>
+
+    <div class="line">
+      <div>سعر المنتج قبل الضريبة (Ex VAT)</div>
+      <div><b>${f2(priceExVAT)} ر.س</b></div>
+    </div>
+
+    <div class="line">
+      <div>الضريبة (VAT 15%)</div>
+      <div>${f2(vatAmount)} ر.س</div>
+    </div>
+
+    <div class="note">العميل يدفع السعر شامل الضريبة فقط. الشحن والعمولة تُخصم من صاحب المتجر.</div>
+
+    <hr>
+
+    <div class="line">
+      <div>تكلفة المنتج</div>
+      <div class="costRed">${f2(cost)} ر.س</div>
+    </div>
+
+    <div class="line">
+      <div>الشحن/التوصيل (على صاحب المتجر)</div>
+      <div class="costRed">${f2(ship)} ر.س</div>
+    </div>
+
+    <div class="line">
+      <div>عمولة المتجر (${f2(storeRate*100)}% من سعر المنتج قبل الضريبة)</div>
+      <div class="costRed">${f2(storeFee)} ر.س</div>
+    </div>
+
+    <div class="line">
+      <div><b>إجمالي التكاليف على صاحب المتجر</b></div>
+      <div class="costRed"><b>${f2(totalCostsOwner)} ر.س</b></div>
+    </div>
+
+    <div class="line">
+      <div>صافي الربح (بعد كل التكاليف)</div>
+      <div class="${netProfit>=0 ? "profitGreen" : "bad"}"><b>${f2(netProfit)} ر.س</b></div>
+    </div>
+
+    <div class="line">
+      <div>نسبة هامش الربح الصافي (على Ex VAT)</div>
+      <div><b>${f2(netPct)}%</b></div>
+    </div>
+  `;
+}
+
+/* =========================
+   2) حفظ آخر إدخال (LocalStorage)
+========================= */
+const KEY = "alhattami_pricing_v1";
+
+function getSelectedValue(name){
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? el.value : null;
+}
+function setSelectedValue(name, value){
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if(el) el.checked = true;
+}
+
+function saveState(){
+  const state = {
+    cost: document.getElementById("cost").value ?? "",
+    ship: getSelectedValue("ship"),
+    store: getSelectedValue("store"),
+    profit: getSelectedValue("profit"),
+    savedAt: Date.now()
+  };
+  localStorage.setItem(KEY, JSON.stringify(state));
+  renderSavedStatus(state.savedAt);
+}
+
+function loadState(){
+  const raw = localStorage.getItem(KEY);
+  if(!raw) { renderSavedStatus(null); return; }
+
+  try{
+    const state = JSON.parse(raw);
+    if(state.cost !== undefined) document.getElementById("cost").value = state.cost;
+    if(state.ship)  setSelectedValue("ship", state.ship);
+    if(state.store) setSelectedValue("store", state.store);
+    if(state.profit)setSelectedValue("profit", state.profit);
+
+    renderSavedStatus(state.savedAt || null);
+  }catch{
+    renderSavedStatus(null);
+  }
+}
+
+function clearState(){
+  localStorage.removeItem(KEY);
+  document.getElementById("savedStatus").textContent = "تم مسح الحفظ.";
+}
+
+function renderSavedStatus(ts){
+  const el = document.getElementById("savedStatus");
+  if(!ts){ el.textContent = "لا يوجد حفظ سابق."; return; }
+  const d = new Date(ts);
+  el.textContent = `آخر حفظ: ${d.toLocaleString()}`;
+}
+
+// حفظ تلقائي عند أي تغيير
+function bindAutoSave(){
+  document.getElementById("cost").addEventListener("input", saveState);
+  ["ship","store","profit"].forEach(name=>{
+    document.querySelectorAll(`input[name="${name}"]`).forEach(r=>{
+      r.addEventListener("change", saveState);
+    });
+  });
+  document.getElementById("clearSaved").addEventListener("click", clearState);
+}
+
+loadState();
+bindAutoSave();
+
+/* =========================
+   3) تسجيل Service Worker (PWA)
+========================= */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

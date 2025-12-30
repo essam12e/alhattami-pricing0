@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>الحطامي لحساب التسعيرات</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d6efd">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<style>
+body{
+  font-family: Tahoma, Arial;
+  background:#f4f6f8;
+  margin:0;
+  padding:20px;
+}
+.container{
+  max-width:900px;
+  margin:auto;
+  background:white;
+  padding:25px;
+  border-radius:10px;
+  box-shadow:0 0 15px rgba(0,0,0,0.10);
+}
+h1{text-align:center;margin:0 0 6px}
+.subtitle{text-align:center;color:#666;font-size:13px;margin-bottom:18px}
+.section{
+  margin-bottom:18px;
+  padding:15px;
+  border:1px solid #ddd;
+  border-radius:8px;
+}
+.options{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+}
+.options label{
+  background:#f7f7f7;
+  border:1px solid #e3e3e3;
+  padding:10px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+input[type=number]{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+button{
+  width:100%;
+  padding:12px;
+  background:#0d6efd;
+  color:white;
+  border:none;
+  font-size:16px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.result{
+  margin-top:15px;
+  background:#f8f9fa;
+  padding:15px;
+  border-radius:8px;
+  border:1px solid #ddd;
+}
+.line{
+  display:flex;
+  justify-content:space-between;
+  padding:6px 0;
+  border-bottom:1px dashed #ddd;
+}
+.line:last-child{border-bottom:none}
+.good{color:#198754;font-weight:bold}
+.bad{color:#dc3545;font-weight:bold}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>الحطامي لحساب التسعيرات</h1>
+<p class="subtitle">VAT ثابتة 15% — الشحن وعمولة المتجر على صاحب المتجر</p>
+
+<div class="section">
+<h3>تكلفة المنتج</h3>
+<input id="cost" type="number" placeholder="مثال: 50">
+</div>
+
+<div class="section">
+<h3>الشحن</h3>
+<div class="options">
+<label><input type="radio" name="ship" value="0" checked> مجاني</label>
+<label><input type="radio" name="ship" value="9"> 9</label>
+<label><input type="radio" name="ship" value="15"> 15</label>
+<label><input type="radio" name="ship" value="27"> 27</label>
+</div>
+</div>
+
+<div class="section">
+<h3>المتجر</h3>
+<div class="options">
+<label><input type="radio" name="store" value="0" checked> سلة 0%</label>
+<label><input type="radio" name="store" value="0.15"> نون / أمازون 15%</label>
+<label><input type="radio" name="store" value="0.20"> ترنديول 20%</label>
+</div>
+</div>
+
+<div class="section">
+<h3>هامش الربح</h3>
+<div class="options">
+<label><input type="radio" name="profit" value="0.2" checked> 20%</label>
+<label><input type="radio" name="profit" value="0.4"> 40%</label>
+<label><input type="radio" name="profit" value="0.6"> 60%</label>
+<label><input type="radio" name="profit" value="0.8"> 80%</label>
+</div>
+</div>
+
+<button onclick="calc()">احسب</button>
+<div id="out" class="result" style="display:none"></div>
+</div>
+
+<script>
+const VAT = 0.15;
+
+function calc(){
+  const cost = +document.getElementById("cost").value;
+  if(!cost) return alert("أدخل تكلفة صحيحة");
+
+  const ship = +document.querySelector('input[name="ship"]:checked').value;
+  const store = +document.querySelector('input[name="store"]:checked').value;
+  const profit = +document.querySelector('input[name="profit"]:checked').value;
+
+  const denom = 1 - store - profit;
+  if(denom <= 0) return alert("الهامش غير ممكن");
+
+  const exVat = (cost + ship) / denom;
+  const vat = exVat * VAT;
+  const finalPrice = exVat + vat;
+  const storeFee = exVat * store;
+  const net = exVat - (cost + ship + storeFee);
+
+  const out = document.getElementById("out");
+  out.style.display="block";
+  out.innerHTML = `
+    <div class="line"><div>سعر البيع النهائي</div><div><b>${finalPrice.toFixed(2)}</b></div></div>
+    <div class="line"><div>قبل الضريبة</div><div>${exVat.toFixed(2)}</div></div>
+    <div class="line"><div>الضريبة</div><div>${vat.toFixed(2)}</div></div>
+    <div class="line"><div>الربح الصافي</div><div class="${net>=0?'good':'bad'}">${net.toFixed(2)}</div></div>
+  `;
+
+  localStorage.setItem("alhattami", JSON.stringify({cost,ship,store,profit}));
+}
+
+(function load(){
+  const s = JSON.parse(localStorage.getItem("alhattami")||"null");
+  if(!s) return;
+  cost.value = s.cost;
+  document.querySelector(`input[name="ship"][value="${s.ship}"]`).checked = true;
+  document.querySelector(`input[name="store"][value="${s.store}"]`).checked = true;
+  document.querySelector(`input[name="profit"][value="${s.profit}"]`).checked = true;
+})();
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
